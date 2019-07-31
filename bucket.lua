@@ -3,13 +3,17 @@ scene = 0
 count = 0
 screenwidth = 240
 screenheight = 136
+
 player = {
 	x = 0,
 	y = 0,
-	w = 4,
-	h = 7,
-	health = 100,
-	power = 0
+	width = 4,
+	height = 7,
+	dir = 1, -- 1 = right, -1 = left
+	state = {
+		health = 100,
+		charges = 0
+	}
 }
 
 -- game loop, main function that gets called every frame.
@@ -85,18 +89,15 @@ function playercontrol()
 	end
 
 	-- make sure the player is still onscreen
-	player.x = max(player.x, 0)
-	player.x = min(player.x, screenwidth - player.width)
-	player.y = max(player.y, 0)
-	player.y = min(player.y, screenheight - player.height)
+	player.x = math.max(player.x, 0)
+	player.x = math.min(player.x, screenwidth - player.width)
+	player.y = math.max(player.y, 0)
+	player.y = math.min(player.y, screenheight - player.height)
 end
 
 -- draw player sprite
 function playerdraw()
 	spr(1, player.x - 4, player.y)
-	spr(2, player.x + 4, player.y)
-	spr(17, player.x - 4, player.y + 8)
-	spr(18, player.x + 4, player.y + 8)
 end
 
 -- library functions
@@ -115,9 +116,9 @@ end
 
 --- collision check
 function iscolliding(obj1, obj2)
-	return (obj1.x < (obj2.x + obj2.w) and obj2.x < (obj1.x + obj1.w) and
-		obj1.y < (obj2.y + obj2.h) and
-		obj2.y < (obj1.y + obj1.h))
+	return (obj1.x < (obj2.x + obj2.width) and obj2.x < (obj1.x + obj1.width) and
+		obj1.y < (obj2.y + obj2.height) and
+		obj2.y < (obj1.y + obj1.height))
 end
 
 _init()
