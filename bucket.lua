@@ -4,14 +4,27 @@ count = 0
 screenwidth = 240
 screenheight = 136
 
+controls = {
+	rightCount = 0,
+	leftCount = 0
+}
+
 player = {
 	x = 0,
 	y = 0,
-	width = 4,
-	height = 7,
-	dir = 1, -- 1 = right, -1 = left
+	width = 8,
+	height = 8,
+	dir = 0, -- 0 = right, 1 = left
+	velo = {
+		x = 0,
+		y = 0
+	},
+	accl = {
+		x = 0,
+		y = 0
+	},
 	state = {
-		health = 100,
+		health = 10,
 		charges = 0
 	}
 }
@@ -49,7 +62,7 @@ function titleupdate()
 end
 
 function gameupdate()
-	count = count + 1
+	count = (count + 1) % 60
 	playercontrol()
 end
 
@@ -64,12 +77,10 @@ end
 
 function gamedraw()
 	cls(13)
-	local gametxt = "game screen"
-	rect(0, 0, screenwidth, screenheight, 12)
-	rect(0, 0, screenwidth, 10, 0)
-	print("count: " .. count, 10, 4, 7)
-	print(gametxt, hcenter(gametxt), hcenter(gametxt), 10)
 
+	local gametxt = "game screen"
+	map(0, 0, 250, 136, 0, 0)
+	print("count: " .. count, 10, 4, 7)
 	playerdraw()
 end
 
@@ -77,9 +88,11 @@ end
 function playercontrol()
 	if (btn(2)) then -- left
 		player.x = player.x - 1
+		player.dir = 1
 	end
 	if (btn(3)) then -- right
 		player.x = player.x + 1
+		player.dir = 0
 	end
 	if (btn(0)) then -- down
 		player.y = player.y - 1
@@ -97,7 +110,7 @@ end
 
 -- draw player sprite
 function playerdraw()
-	spr(1, player.x - 4, player.y)
+	spr(1, player.x, player.y, 0, 1, player.dir, 0)
 end
 
 -- library functions
