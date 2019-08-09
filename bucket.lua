@@ -10,58 +10,45 @@ controls = {
 }
 
 player = {
-	pos = {
-		x = 0,
-		y = 0
-	},
-	dim = {
-		w = 8,
-		h = 8
-	},
+	pos = { x = 0, y = 0 },
+	dim = { w = 8, h = 8 },
 	dir = 0, -- 0 = right, 1 = left
-	velo = {
-		x = 0,
-		y = 0
-	},
-	accl = {
-		x = 0,
-		y = 0
-	},
+	velo = { x = 0, y = 0 },
+	accl = { x = 0, y = 0 },
 	state = {
 		health = 10,
 		charges = 0
-	}
+	},
+	sprite = 0, -- which sprite the player is currently displaying
+	anim = "walk",  -- current animation
+	anim_idx = 1, -- which frame of the anim we're on
+	anim_ticks = 1, -- how many ticks on this frame are left
+	anims = { -- list of player animations
+		["stand"] = { ticks=1, frames={0} },
+		["walk"] = { ticks=4, frames={1,2,3,4,5} },
+		["jump"] = { ticks=2, frames={17, 16} },
+		["midair"] = { ticks=1, frames={16} },
+		["slide"] = { ticks=1, frames={18} }
+	},
+	set_anim = function(self, new_anim)
+		self.anim = new_anim
+	end,
+	update_anim = function(self)
+		self.anim_ticks = self.anim_ticks - 1
+		if self.anim_ticks <= 0 then
+			if self.anim_idx == #self.anims[self.anim].frames then
+				self.anim_idx = 1
+			else
+				self.anim_idx = self.anim_idx + 1
+			end
+			self.anim_ticks = self.anims[self.anim].ticks
+		end
+  end,
+	set_sprite = function(self)
+		self.sprite = self.anims[self.anim].frames[anim_idx]
+  end
 }
 
-anims = {
-	["stand"] = {
-		ticks=1,
-		frames={0},
-	},
-	["walk"] = {
-		ticks=1,--how long is each frame shown.
-		frames={1,2,3,4,5},--what frames are shown.
-	},
-	["jump"] = {
-		ticks=2,
-		frames={17, 16},
-	},
-	["midair"] = {
-		ticks=1,
-		frames={16},
-	},
-	["slide"] = {
-		ticks=1,
-		frames={18},
-	}
-}
-
-inputs = {
-	l = 0,
-	r = 0,
-	jump = 0,
-	bash = 0
-}
 
 -- game loop, main function that gets called every frame.
 function TIC()
@@ -114,12 +101,42 @@ function gamedraw()
 
 	local gametxt = "game screen"
 	map(0, 0, 250, 136, 0, 0)
-	print("count: " .. count, 10, 4, 7)
+	-- print(string.format("a_idx=%d,spr=%d,a_tx=%d,anim=%s",
+	print(string.format("a_idx=%d,a_tx=%d,anim=%s",
+		-- player.anim_idx, player.sprite, player.anim_ticks, player.anim), 10, 4, 7)
+		player.anim_idx, player.anim_ticks, player.anim), 10, 4, 7)
 	playerdraw()
+end
+
+--- ##### input parsing #####
+
+inputs = {
+	l = true,
+	r = true,
+	jump = true,
+	bash = true
+}
+
+function get_inputs()
+	if btn(2) then inputs.l = true end
+	if btn(3) then inputs.r = true end
+	if btnp(4, 6, 60) then inputs.jump = true end
+	if btnp(5, 6, 60) then inputs.bash = true end
+end
+
+function clear_inputs()
+	inputs.l = false
+	inputs.r = false
+	inputs.jump = false
+	inputs.bash = false
 end
 
 -- handle button inputs
 function playercontrol()
+	clear_inputs()
+	get_inputs()
+	player:update_anim()
+	player:set_sprite()
 	if (btn(2)) then -- left
 		player.pos.x = player.pos.x - 1
 		player.dir = 1
@@ -144,7 +161,7 @@ end
 
 -- draw player sprite
 function playerdraw()
-	spr(1, player.pos.x, player.pos.y, 0, 1, player.dir, 0)
+	spr(player.sprite, player.pos.x, player.pos.y, 0, 1, player.dir, 0)
 end
 
 -- library functions
