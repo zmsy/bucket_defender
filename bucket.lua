@@ -28,7 +28,8 @@ player = {
 		["walk"] = { ticks=4, frames={1,2,3,4,5} },
 		["jump"] = { ticks=2, frames={17, 16} },
 		["midair"] = { ticks=1, frames={16} },
-		["slide"] = { ticks=1, frames={18} }
+		["slide"] = { ticks=1, frames={18} },
+		["bash"] = { ticks=2, frames={32,33,34,35,36,37,38,39,40,41} }
 	},
 	set_anim = function(self, new_anim)
 		self.anim = new_anim
@@ -45,7 +46,7 @@ player = {
 		end
   end,
 	set_sprite = function(self)
-		self.sprite = self.anims[self.anim].frames[anim_idx]
+		self.sprite = self.anims[self.anim].frames[self.anim_idx]
   end
 }
 
@@ -101,10 +102,10 @@ function gamedraw()
 
 	local gametxt = "game screen"
 	map(0, 0, 250, 136, 0, 0)
-	-- print(string.format("a_idx=%d,spr=%d,a_tx=%d,anim=%s",
-	print(string.format("a_idx=%d,a_tx=%d,anim=%s",
-		-- player.anim_idx, player.sprite, player.anim_ticks, player.anim), 10, 4, 7)
-		player.anim_idx, player.anim_ticks, player.anim), 10, 4, 7)
+	print(string.format("a_idx=%d,spr=%s,a_tx=%d,anim=%s",
+	-- print(string.format("a_idx=%d,a_tx=%d,anim=%s",
+		player.anim_idx, tostring(player.sprite), player.anim_ticks, player.anim), 10, 4, 7, true)
+		-- player.anim_idx, player.anim_ticks, player.anim), 10, 4, 7)
 	playerdraw()
 end
 
