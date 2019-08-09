@@ -20,7 +20,7 @@ player = {
 		charges = 0
 	},
 	sprite = 0, -- which sprite the player is currently displaying
-	anim = "walk",  -- current animation
+	anim = "bash",  -- current animation
 	anim_idx = 1, -- which frame of the anim we're on
 	anim_ticks = 1, -- how many ticks on this frame are left
 	anims = { -- list of player animations
@@ -29,7 +29,7 @@ player = {
 		["jump"] = { ticks=2, frames={17, 16} },
 		["midair"] = { ticks=1, frames={16} },
 		["slide"] = { ticks=1, frames={18} },
-		["bash"] = { ticks=2, frames={32,33,34,35,36,37,38,39,40,41} }
+		["bash"] = { ticks=3, frames={32,33,34,35,36,37,38,39,40,41} }
 	},
 	set_anim = function(self, new_anim)
 		self.anim = new_anim
