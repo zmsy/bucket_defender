@@ -4,61 +4,104 @@ count = 0
 screenwidth = 240
 screenheight = 136
 
-controls = {
-	rightCount = 0,
-	leftCount = 0
-}
-
+-- player class
 player = {
-	pos = { x = 0, y = 0 },
-	dim = { w = 8, h = 8 },
+	pos = { x = 0, y = 0 }, -- position
+	dim = { w = 8, h = 8 }, -- dimensions
 	dir = 0, -- 0 = right, 1 = left
-	velo = { x = 0, y = 0 },
-	accl = { x = 0, y = 0 },
-	state = {
+	velo = { x = 1, y = 1 }, -- velocity
+	accl = { x = 0, y = 0 }, -- acceleration
+	stats = {
 		health = 10,
-		charges = 0
+		charges = 0,
 	},
+	state = { -- tracks player activities
+		jump = false,
+		jump_able = true,
+		bash = false
+	},
+
+	-- animation information
 	sprite = 0, -- which sprite the player is currently displaying
-	anim = "bash",  -- current animation
+	anim = "walk",  -- current animation
 	anim_idx = 1, -- which frame of the anim we're on
 	anim_ticks = 1, -- how many ticks on this frame are left
+	anim_over = false, -- tracks if the most recent anim ended
+
 	anims = { -- list of player animations
-		["stand"] = { ticks=1, frames={0} },
-		["walk"] = { ticks=4, frames={1,2,3,4,5} },
-		["jump"] = { ticks=2, frames={17, 16} },
-		["midair"] = { ticks=1, frames={16} },
-		["slide"] = { ticks=1, frames={18} },
-		["bash"] = { ticks=3, frames={32,33,34,35,36,37,38,39,40,41} }
+		["stand"] = { ticks=1, frames={0}, loop=true},
+		["walk"] = { ticks=4, frames={1,2,3,4,5}, loop=true},
+		["jump"] = { ticks=2, frames={17}, loop=false},
+		["midair"] = { ticks=1, frames={16}, loop=true},
+		["slide"] = { ticks=1, frames={18}, loop=true},
+		["bash"] = { ticks=3, frames={32,33,34,35,36,37,38,39,40,41}, loop=false}
 	},
+
 	set_anim = function(self, new_anim)
-		self.anim = new_anim
+		if self.anim ~= new_anim then
+			self.anim = new_anim
+			self.anim_idx = 1
+		end
 	end,
+
 	update_anim = function(self)
+		self.anim_over = false
 		self.anim_ticks = self.anim_ticks - 1
 		if self.anim_ticks <= 0 then
 			if self.anim_idx == #self.anims[self.anim].frames then
+				self.anim_over = true
 				self.anim_idx = 1
 			else
 				self.anim_idx = self.anim_idx + 1
 			end
 			self.anim_ticks = self.anims[self.anim].ticks
 		end
-  end,
+	end,
+
 	set_sprite = function(self)
 		self.sprite = self.anims[self.anim].frames[self.anim_idx]
-  end
+	end,
+
+	-- input handlers
+	handle_inputs = function(self, inputs)
+		if inputs.l then
+			self.pos.x = self.pos.x - 1
+			self.dir = 1
+			if not self.state.jump then
+				self.set_anim("walk")
+		  end
+		elseif inputs.r then -- right
+			self.pos.x = self.pos.x + 1
+			self.set_anim("walk")
+			self.dir = 0
+		else
+			self.set_anim("stand")
+		end
+		if inputs.jump then -- down
+			if not self.state.jump then self.state.jump = true end
+			player.pos.y = player.pos.y - 1
+		end
+		if inputs.bash then -- up
+			if not self.state.bash then self.state.bash = true end
+			player.pos.y = player.pos.y + 1
+		end
+	end
 }
 
+-- inputs collector class for button presses
+function get_inputs()
+	local i = {}
+	if btn(2) then i.l = true else i.l = false end
+	if btn(3) then i.r = true else i.r = false end
+	if btnp(4) then i.jump = true i.jump = false end
+	if btnp(5) then i.bash = true i.bash = false end
+	return i
+end
 
 -- game loop, main function that gets called every frame.
 function TIC()
 	_update()
 	_draw()
-end
-
--- This function runs as soon as the game loads
-function _init()
 end
 
 function _update()
@@ -102,56 +145,16 @@ function gamedraw()
 
 	local gametxt = "game screen"
 	map(0, 0, 250, 136, 0, 0)
-	print(string.format("a_idx=%d,spr=%s,a_tx=%d,anim=%s",
-	-- print(string.format("a_idx=%d,a_tx=%d,anim=%s",
-		player.anim_idx, tostring(player.sprite), player.anim_ticks, player.anim), 10, 4, 7, true)
-		-- player.anim_idx, player.anim_ticks, player.anim), 10, 4, 7)
+	print(string.format("pos.x=%d,pos.y=%d", player.pos.x, player.pos.y), 10, 4, 7, true)
 	playerdraw()
-end
-
---- ##### input parsing #####
-
-inputs = {
-	l = true,
-	r = true,
-	jump = true,
-	bash = true
-}
-
-function get_inputs()
-	if btn(2) then inputs.l = true end
-	if btn(3) then inputs.r = true end
-	if btnp(4, 6, 60) then inputs.jump = true end
-	if btnp(5, 6, 60) then inputs.bash = true end
-end
-
-function clear_inputs()
-	inputs.l = false
-	inputs.r = false
-	inputs.jump = false
-	inputs.bash = false
 end
 
 -- handle button inputs
 function playercontrol()
-	clear_inputs()
-	get_inputs()
+	inputs = get_inputs()
 	player:update_anim()
 	player:set_sprite()
-	if (btn(2)) then -- left
-		player.pos.x = player.pos.x - 1
-		player.dir = 1
-	end
-	if (btn(3)) then -- right
-		player.pos.x = player.pos.x + 1
-		player.dir = 0
-	end
-	if (btn(0)) then -- down
-		player.pos.y = player.pos.y - 1
-	end
-	if (btn(1)) then -- up
-		player.pos.y = player.pos.y + 1
-	end
+	player:handle_inputs(inputs)
 
 	-- make sure the player is still onscreen
 	player.pos.x = math.max(player.pos.x, 0)
@@ -181,9 +184,7 @@ end
 
 --- collision check
 function iscolliding(obj1, obj2)
-	return (obj1.x < (obj2.x + obj2.width) and obj2.x < (obj1.x + obj1.width) and
-		obj1.y < (obj2.y + obj2.height) and
-		obj2.y < (obj1.y + obj1.height))
+	return (obj1.x < (obj2.x + obj2.dim.w) and obj2.x < (obj1.x + obj1.dim.w) and
+		obj1.y < (obj2.y + obj2.dim.h) and
+		obj2.y < (obj1.y + obj1.dim.h))
 end
-
-_init()
