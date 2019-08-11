@@ -30,12 +30,21 @@ player = {
 		charges = 0,
 	},
 	state = { -- tracks player activities
+		grounded = true,
 		jumping = false,
 		moving = false,
 		jump_able = true,
 		bashing = false,
 		bash_able = true
 	},
+
+	can_jump = function(self)
+		return self.state.grounded and not self.state.jumping
+  end,
+
+	can_bash = function(self)
+		return not self.state.bashing
+	end,
 
 	-- animation information
 	sprite = 0, -- which sprite the player is currently displaying
@@ -85,7 +94,7 @@ player = {
 			self:set_anim("stand")
 			self.state.moving = false
 		elseif inputs.l then
-			self.velo.x = self.velo.x - 1
+			self.velo.x = math.max(self.velo.x - 1, const.X_MAX_VELO * -1)
 			self.state.moving = true
 			self.dir = 1
 			if not self.state.jumping then
@@ -93,7 +102,7 @@ player = {
 		  end
 		elseif inputs.r then
 			self.state.moving = true
-			self.velo.x = self.velo.x + 1
+			self.velo.x = math.min(self.velo.x + 1, const.X_MAX_VELO)
 			self:set_anim("walk")
 			self.dir = 0
 		end
@@ -112,9 +121,35 @@ player = {
 		end
 	end,
 
+  -- check the status flags in the player and update accordingly
 	handle_state = function(self)
-		if self.state.moving then
+		-- check for state changes based on animation ending
+		if self.anim_over then
+			if self.state.jumping then self.state.jumping = false end
+			if self.state.bashing then self.state.bashing = false end
+			self.anim_over = false
 		end
+
+		-- handle player is bashing
+		if self.state.bashing then self:set_anim("bash") end
+
+		-- handle player is in the air
+		if not self.state.grounded then
+			if self.state.jumping then
+				self:set_anim("jump")
+			else
+				self:set_anim("midair")
+			end
+		else
+			if self.state.moving then
+				self:set_anim("walk")
+			elseif self.velo.x > 0.05 then
+				self:set_anim("slide")
+			else
+				self:set_anim("stand")
+		  end
+		end
+
   end,
 
 	move = function(self)
