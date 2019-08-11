@@ -4,6 +4,9 @@ count = 0
 screenwidth = 240
 screenheight = 136
 
+inputs_cache = {}
+inputs_str = ""
+
 -- player class
 player = {
 	pos = { x = 0, y = 0 }, -- position
@@ -38,6 +41,7 @@ player = {
 	},
 
 	set_anim = function(self, new_anim)
+		inputs_str = string.format("anim=%s", tostring(new_anim))
 		if self.anim ~= new_anim then
 			self.anim = new_anim
 			self.anim_idx = 1
@@ -45,7 +49,6 @@ player = {
 	end,
 
 	update_anim = function(self)
-		self.anim_over = false
 		self.anim_ticks = self.anim_ticks - 1
 		if self.anim_ticks <= 0 then
 			if self.anim_idx == #self.anims[self.anim].frames then
@@ -64,37 +67,40 @@ player = {
 
 	-- input handlers
 	handle_inputs = function(self, inputs)
-		if inputs.l then
+
+		if not (inputs.l or inputs.r) then
+			self:set_anim("stand")
+		elseif inputs.l then
 			self.pos.x = self.pos.x - 1
 			self.dir = 1
 			if not self.state.jump then
-				self.set_anim("walk")
+				self:set_anim("walk")
 		  end
-		elseif inputs.r then -- right
+		elseif inputs.r then
 			self.pos.x = self.pos.x + 1
-			self.set_anim("walk")
+			self:set_anim("walk")
 			self.dir = 0
-		else
-			self.set_anim("stand")
 		end
-		if inputs.jump then -- down
+
+		if inputs.jump then
 			if not self.state.jump then self.state.jump = true end
 			player.pos.y = player.pos.y - 1
 		end
-		if inputs.bash then -- up
+		if inputs.bash then
 			if not self.state.bash then self.state.bash = true end
 			player.pos.y = player.pos.y + 1
 		end
+
 	end
 }
 
 -- inputs collector class for button presses
 function get_inputs()
-	local i = {}
-	if btn(2) then i.l = true else i.l = false end
-	if btn(3) then i.r = true else i.r = false end
-	if btnp(4) then i.jump = true i.jump = false end
-	if btnp(5) then i.bash = true i.bash = false end
+	local i = { l=false, r=false, jump=false, bash=false }
+	if btn(2) then i.l = true end
+	if btn(3) then i.r = true end
+	if btnp(4) then i.jump = true end
+	if btnp(5) then i.bash = true end
 	return i
 end
 
@@ -145,16 +151,19 @@ function gamedraw()
 
 	local gametxt = "game screen"
 	map(0, 0, 250, 136, 0, 0)
-	print(string.format("pos.x=%d,pos.y=%d", player.pos.x, player.pos.y), 10, 4, 7, true)
+	print(inputs_str, 110, 40, 10)
+	print(string.format("pos.x=%d,pos.y=%d,l=%s,r=%s",
+		player.pos.x, player.pos.y, tostring(inputs_cache.l), tostring(inputs_cache.r)), 10, 4, 7, true)
 	playerdraw()
 end
 
 -- handle button inputs
 function playercontrol()
-	inputs = get_inputs()
+	local inputs = get_inputs()
+	inputs_cache = inputs
 	player:update_anim()
-	player:set_sprite()
 	player:handle_inputs(inputs)
+	player:set_sprite()
 
 	-- make sure the player is still onscreen
 	player.pos.x = math.max(player.pos.x, 0)
