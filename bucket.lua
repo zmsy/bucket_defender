@@ -4,15 +4,25 @@ count = 0
 screenwidth = 240
 screenheight = 136
 
+-- cache inputs for debugging
 inputs_cache = {}
-inputs_str = ""
+
+-- constants for tinkering with
+const = {
+	SCREENWIDTH = 240,
+	SCREENHEIGHT = 136,
+	X_MAX_VELO = 1.0,
+	Y_MAX_VELO = 1.8,
+	JUMP_VELO = 1.8,
+	GRAVITY = 0.135
+}
 
 -- player class
 player = {
 	pos = { x = 0, y = 0 }, -- position
 	dim = { w = 8, h = 8 }, -- dimensions
 	dir = 0, -- 0 = right, 1 = left
-	velo = { x = 1, y = 1 }, -- velocity
+	velo = { x = 0.0, x_max = 1.0, y = 0.0, y_max = 1.8 }, -- velocity
 	accl = { x = 0, y = 0 }, -- acceleration
 	stats = {
 		health = 10,
@@ -68,7 +78,8 @@ player = {
 	-- input handlers
 	handle_inputs = function(self, inputs)
 
-		if not (inputs.l or inputs.r) then
+		-- xor logical equivalent
+		if inputs.l or inputs.r and not inputs.l == inputs.r then
 			self:set_anim("stand")
 		elseif inputs.l then
 			self.pos.x = self.pos.x - 1
@@ -141,9 +152,9 @@ end
 function titledraw()
 	local titletxt = "title screen"
 	local starttxt = "press z to start"
-	rect(0, 0, screenwidth, screenheight, 3)
-	print(titletxt, hcenter(titletxt), screenheight / 4, 10)
-	print(starttxt, hcenter(starttxt), (screenheight / 4) + (screenheight / 2), 7)
+	rect(0, 0, const.SCREENWIDTH, const.SCREENHEIGHT, 3)
+	print(titletxt, hcenter(titletxt), const.SCREENHEIGHT / 4, 10)
+	print(starttxt, hcenter(starttxt), (const.SCREENHEIGHT / 4) + (const.SCREENHEIGHT / 2), 7)
 end
 
 function gamedraw()
@@ -151,10 +162,11 @@ function gamedraw()
 
 	local gametxt = "game screen"
 	map(0, 0, 250, 136, 0, 0)
-	print(inputs_str, 110, 40, 10)
 	print(string.format("pos.x=%d,pos.y=%d,l=%s,r=%s",
 		player.pos.x, player.pos.y, tostring(inputs_cache.l), tostring(inputs_cache.r)), 10, 4, 7, true)
 	playerdraw()
+	enemiesDraw()
+	particlesDraw()
 end
 
 -- handle button inputs
@@ -167,9 +179,9 @@ function playercontrol()
 
 	-- make sure the player is still onscreen
 	player.pos.x = math.max(player.pos.x, 0)
-	player.pos.x = math.min(player.pos.x, screenwidth - player.dim.w)
+	player.pos.x = math.min(player.pos.x, const.screenwidth - player.dim.w)
 	player.pos.y = math.max(player.pos.y, 0)
-	player.pos.y = math.min(player.pos.y, screenheight - player.dim.h)
+	player.pos.y = math.min(player.pos.y, const.screenheight - player.dim.h)
 end
 
 -- draw player sprite
@@ -177,12 +189,17 @@ function playerdraw()
 	spr(player.sprite, player.pos.x, player.pos.y, 0, 1, player.dir, 0)
 end
 
+-- draw enemies
+function enemiesDraw() end
+
+function particlesDraw() end
+
 -- library functions
 --- center align from: pico-8.wikia.com/wiki/centering_text
 function hcenter(s)
 	-- string length times the pixels in a char's width
 	-- cut in half and rounded down
-	return (screenwidth / 2) - ((#s * 4) // 2)
+	return (const.screenwidth / 2) - ((#s * 4) // 2)
 end
 
 function vcenter(s)
