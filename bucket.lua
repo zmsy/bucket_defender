@@ -21,6 +21,7 @@ const = {
 player = {
 	pos = { x = 0, y = 0 }, -- position
 	dim = { w = 8, h = 8 }, -- dimensions
+	hbox = { x = 2, y = 0, w = 4, y = 6 }, -- hitbox
 	dir = 0, -- 0 = right, 1 = left
 	velo = { x = 0.0, x_max = 1.0, y = 0.0, y_max = 1.8 }, -- velocity
 	accl = { x = 0, y = 0 }, -- acceleration
@@ -29,9 +30,11 @@ player = {
 		charges = 0,
 	},
 	state = { -- tracks player activities
-		jump = false,
+		jumping = false,
+		moving = false,
 		jump_able = true,
-		bash = false
+		bashing = false,
+		bash_able = true
 	},
 
 	-- animation information
@@ -77,32 +80,47 @@ player = {
 
 	-- input handlers
 	handle_inputs = function(self, inputs)
-
 		-- xor logical equivalent
 		if inputs.l or inputs.r and not inputs.l == inputs.r then
 			self:set_anim("stand")
+			self.state.moving = false
 		elseif inputs.l then
-			self.pos.x = self.pos.x - 1
+			self.velo.x = self.velo.x - 1
+			self.state.moving = true
 			self.dir = 1
-			if not self.state.jump then
+			if not self.state.jumping then
 				self:set_anim("walk")
 		  end
 		elseif inputs.r then
-			self.pos.x = self.pos.x + 1
+			self.state.moving = true
+			self.velo.x = self.velo.x + 1
 			self:set_anim("walk")
 			self.dir = 0
 		end
 
 		if inputs.jump then
-			if not self.state.jump then self.state.jump = true end
-			player.pos.y = player.pos.y - 1
+			if self.state.bash_able then
+				self.state.jumping = true
+				self.state.jump_able = false
+		  end
 		end
 		if inputs.bash then
-			if not self.state.bash then self.state.bash = true end
-			player.pos.y = player.pos.y + 1
+			if self.state.bash_able then
+				self.state.bashing = true
+				self.state.bash_able = false
+		  end
 		end
+	end,
 
-	end
+	handle_state = function(self)
+		if self.state.moving then
+		end
+  end,
+
+	move = function(self)
+		self.pos.x = self.pos.x + self.velo.x
+		self.pos.y = self.pos.y + self.velo.y
+  end
 }
 
 -- inputs collector class for button presses
@@ -175,7 +193,9 @@ function playercontrol()
 	inputs_cache = inputs
 	player:update_anim()
 	player:handle_inputs(inputs)
+	player:handle_state()
 	player:set_sprite()
+	player:move()
 
 	-- make sure the player is still onscreen
 	player.pos.x = math.max(player.pos.x, 0)
@@ -210,7 +230,20 @@ end
 
 --- collision check
 function iscolliding(obj1, obj2)
-	return (obj1.x < (obj2.x + obj2.dim.w) and obj2.x < (obj1.x + obj1.dim.w) and
-		obj1.y < (obj2.y + obj2.dim.h) and
-		obj2.y < (obj1.y + obj1.dim.h))
+	return (
+		obj1.pos.x < (obj2.pos.x + obj2.dim.w) and
+		obj2.pos.x < (obj1.pos.x + obj1.dim.w) and
+		obj1.pos.y < (obj2.pos.y + obj2.dim.h) and
+		obj2.pos.y < (obj1.pos.y + obj1.dim.h)
+	)
+end
+
+--- collision check w/ independent hitbox
+function iscollidinghbox(obj1, obj2)
+	return (
+		obj1.pos.x + obj1.hbox.x < (obj2.pos.x + obj2.hbox.x + obj2.hbox.w) and
+		obj2.pos.x + obj2.hbox.x < (obj1.pos.x + obj1.hbox.x + obj1.hbox.w) and
+		obj1.pos.y + obj1.hbox.y < (obj2.pos.y + obj2.hbox.y + obj2.hbox.h) and
+		obj2.pos.y + obj2.hbox.y < (obj1.pos.y + obj1.hbox.y + obj1.dim.h)
+	)
 end
