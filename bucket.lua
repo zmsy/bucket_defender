@@ -4,6 +4,7 @@ count = 0
 
 -- cache inputs for debugging
 debug = ""
+inputs_cache = {}
 
 -- constants for tinkering with
 const = {
@@ -12,6 +13,7 @@ const = {
 	X_MAX_VELO = 1.0,
 	X_DECEL = 0.65,
 	Y_MAX_VELO = 1.8,
+	X_BASH_VELO = 3.5,
 	SLIDING_VELO = 0.05,
 	GRAVITY = 0.135,
 	JUMPABLE_AIRTIME = 5,
@@ -57,6 +59,7 @@ player = {
 
 	set_anim = function(self, new_anim)
 		if self.anim ~= new_anim then
+			trace("new anim = " .. new_anim .. ", count = " .. tostring(count))
 			self.anim = new_anim
 			self.anim_frame = 1
 		end
@@ -108,7 +111,10 @@ player = {
 	check_for_state_changes = function(self)
 		if self.anim_over then
 			self.state.jumping = false
-			self.state.bashing = false
+			if self.state.bashing then
+				self.state.bashing = false
+				self.velo.x = 0
+		  end
 			self.anim_over = false
 		end
 	end,
@@ -116,10 +122,12 @@ player = {
   -- check the status flags in the player and update accordingly
 	handle_state = function(self)
 		-- handle player is bashing
-		if self.state.bashing then self:set_anim("bash") end
+		if self.state.bashing then
+			self:set_anim("bash")
+			self.velo.x = self.velo.x + const.X_BASH_VELO
 
 		-- handle player is in the air
-		if not self.state.grounded then
+  	elseif not self.state.grounded then
 			if self.state.jumping then
 				self:set_anim("jump")
 			else
@@ -168,7 +176,7 @@ player = {
 	end,
 	
 	is_falling = function(self)
-		return self.velo.y < 0.0
+		return self.velo.y >= 0.0
 	end,
 	
 	-- collision checks, update statuses if necessary
@@ -245,8 +253,8 @@ function gamedraw()
 
 	local gametxt = "game screen"
 	map(0, 0, 250, 136, 0, 0)
-	print(string.format("x=%.2f,y=%.2f,vel=%.2f,dbg=%d",
-		player.pos.x, player.pos.y, player.velo.x, player.state.airtime), 10, 4, 7, true)
+	print(string.format("x=%.2f,y=%.2f,vel=%.2f,dbg=%s",
+		player.pos.x, player.pos.y, player.velo.x, tostring(inputs_cache.bash)), 10, 4, 7, true)
 	playerdraw()
 	enemiesDraw()
 	particlesDraw()
