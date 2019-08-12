@@ -13,7 +13,6 @@ const = {
 	X_DECEL = 0.65,
 	Y_MAX_VELO = 1.8,
 	SLIDING_VELO = 0.05,
-	JUMP_VELO = 1.8,
 	GRAVITY = 0.135,
   PLATFORM_TILES = {64}
 }
@@ -25,7 +24,7 @@ player = {
 	hbox = { x = 2, y = 0, w = 4, y = 6 }, -- hitbox
 	dir = 0, -- 0 = right, 1 = left
 	velo = { x = 0.0, y = 0.0 }, -- velocity
-	accl = { x = 0.5, y = 0.2 }, -- acceleration
+	accl = { x = 0.5, y = 1.2 }, -- acceleration
 	stats = {
 		health = 10,
 		charges = 0,
@@ -145,6 +144,10 @@ player = {
 		self.velo.x = math.min(self.velo.x, const.X_MAX_VELO)
 		self.pos.x = self.pos.x + self.velo.x
 		self.velo.x = self.velo.x * const.X_DECEL
+		if not self.state.grounded then
+			self.velo.y = self.velo.y + const.GRAVITY
+		end
+		self.velo.y = math.min(self.velo.y, const.Y_MAX_VELO)
 		self.pos.y = self.pos.y + self.velo.y
 	end,
 
@@ -166,11 +169,18 @@ player = {
 	end,
 	
 	-- collision checks, update statuses if necessary
-	check_collisions = function(self)
-		self.state.grounded = (
-			iscollidingtile(self.pos.x + self.pos.hbox.x, self.pos.y) or
-			iscollidingtile(self.pos.x + self.pos.hbox.x + self.pos.hbox.w, self.pos.y)	
-		)
+	check_grounded = function(self)
+		if (
+			iscollidingtile(self.pos.x + self.hbox.x, self.pos.y) or
+			iscollidingtile(self.pos.x + self.hbox.x + self.hbox.w, self.pos.y)	
+		) then
+			self.state.grounded = true
+			-- debug = "grounded"
+			self.velo.y = 0
+		else
+			self.state.grounded = false
+			-- debug = "-"
+		end
   end
 }
 
@@ -242,6 +252,7 @@ end
 function playercontrol()
 	local inputs = get_inputs()
 	inputs_cache = inputs
+	player:check_grounded()
 	player:check_for_state_changes()
 	player:update_anim()
 	player:handle_inputs(inputs)
@@ -290,14 +301,11 @@ function iscolliding(obj1, obj2)
 	)
 end
 
+-- check to see if colliding with map tiles. div by 8 to get map coords
 function iscollidingtile(x, y)
-	local tile_id = mget(x, y)
-	for i=1, #const.PLATFORM_TILES do
-		if const.PLATFORM_TILES[i] == tile_id then
-			return true
-		end
-  end
-	return false
+	local tile_id = mget(x/8, y/8)
+	debug = tostring(tile_id)
+	return tile_id == 64
 end
 
 --- collision check w/ independent hitbox
