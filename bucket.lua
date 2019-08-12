@@ -13,7 +13,7 @@ const = {
 	X_MAX_VELO = 1.0,
 	X_DECEL = 0.65,
 	Y_MAX_VELO = 1.8,
-	X_BASH_VELO = 3.5,
+	X_BASH_VELO = 1.6,
 	SLIDING_VELO = 0.05,
 	GRAVITY = 0.135,
 	JUMPABLE_AIRTIME = 5,
@@ -124,7 +124,7 @@ player = {
 		-- handle player is bashing
 		if self.state.bashing then
 			self:set_anim("bash")
-			self.velo.x = self.velo.x + const.X_BASH_VELO
+			self.velo.x = self.velo.x + const.X_BASH_VELO * (-1 * self.dir)
 
 		-- handle player is in the air
   	elseif not self.state.grounded then
@@ -150,8 +150,10 @@ player = {
   end,
 
 	move = function(self)
-		self.velo.x = math.max(self.velo.x, const.X_MAX_VELO * - 1)
-		self.velo.x = math.min(self.velo.x, const.X_MAX_VELO)
+		if not self.state.bashing then
+			self.velo.x = math.max(self.velo.x, const.X_MAX_VELO * - 1)
+			self.velo.x = math.min(self.velo.x, const.X_MAX_VELO)
+		end
 		self.pos.x = self.pos.x + self.velo.x
 		self.velo.x = self.velo.x * const.X_DECEL
 		if not self.state.grounded then
