@@ -10,21 +10,22 @@ const = {
 	SCREENWIDTH = 240,
 	SCREENHEIGHT = 136,
 	X_MAX_VELO = 1.0,
-	X_DECEL = 0.78,
+	X_DECEL = 0.65,
 	Y_MAX_VELO = 1.8,
 	SLIDING_VELO = 0.05,
 	JUMP_VELO = 1.8,
-	GRAVITY = 0.135
+	GRAVITY = 0.135,
+  PLATFORM_TILES = {64}
 }
 
 -- player class
 player = {
-	pos = { x = 0, y = 0 }, -- position
+	pos = { x = 110, y = 80 }, -- position
 	dim = { w = 8, h = 8 }, -- dimensions
 	hbox = { x = 2, y = 0, w = 4, y = 6 }, -- hitbox
 	dir = 0, -- 0 = right, 1 = left
 	velo = { x = 0.0, y = 0.0 }, -- velocity
-	accl = { x = 0, y = 0 }, -- acceleration
+	accl = { x = 0.5, y = 0.2 }, -- acceleration
 	stats = {
 		health = 10,
 		charges = 0,
@@ -36,68 +37,66 @@ player = {
 		bashing = false
 	},
 
-
-
 	-- animation information
 	sprite = 0, -- which sprite the player is currently displaying
 	anim = "walk",  -- current animation
-	anim_idx = 1, -- which frame of the anim we're on
+	anim_frame = 1, -- which frame of the anim we're on
 	anim_ticks = 1, -- how many ticks on this frame are left
 	anim_over = false, -- tracks if the most recent anim ended
 
 	anims = { -- list of player animations
 		["stand"] = { ticks=1, frames={0}, loop=true},
 		["walk"] = { ticks=4, frames={1,2,3,4,5}, loop=true},
-		["jump"] = { ticks=2, frames={17}, loop=false},
+		["jump"] = { ticks=2, frames={17, 18}, loop=false},
 		["midair"] = { ticks=1, frames={16}, loop=true},
+		["falling"] = { tick=1, frames={19}, loop=true},
 		["slide"] = { ticks=1, frames={18}, loop=true},
 		["bash"] = { ticks=3, frames={32,33,34,35,36,37,38,39,40,41}, loop=false}
 	},
 
 	set_anim = function(self, new_anim)
-		inputs_str = string.format("anim=%s", tostring(new_anim))
 		if self.anim ~= new_anim then
 			self.anim = new_anim
-			self.anim_idx = 1
+			self.anim_frame = 1
 		end
 	end,
 
 	update_anim = function(self)
 		self.anim_ticks = self.anim_ticks - 1
 		if self.anim_ticks <= 0 then
-			if self.anim_idx == #self.anims[self.anim].frames then
+			if self.anim_frame == #self.anims[self.anim].frames then
 				self.anim_over = true
-				self.anim_idx = 1
+				self.anim_frame = 1
 			else
-				self.anim_idx = self.anim_idx + 1
+				self.anim_frame = self.anim_frame + 1
 			end
 			self.anim_ticks = self.anims[self.anim].ticks
 		end
 	end,
 
 	set_sprite = function(self)
-		self.sprite = self.anims[self.anim].frames[self.anim_idx]
+		self.sprite = self.anims[self.anim].frames[self.anim_frame]
 	end,
 
 	-- input handlers
 	handle_inputs = function(self, inputs)
 		if inputs.l then
-			debug = "left"
-			self.velo.x = -1.0
+			self.velo.x = self.velo.x - self.accl.x
 			self.state.moving = true
 			self.dir = 1
 		elseif inputs.r then
-			debug = "right"
 			self.state.moving = true
-			self.velo.x = 1.0
+			self.velo.x = self.velo.x + self.accl.x
 			self.dir = 0
 		else
-			debug = ""
 			self.state.moving = false
 		end
 
 		if inputs.jump then
-			if self:can_jump() then self.state.jumping = true end
+			if self:can_jump() then
+				self.state.jumping = true
+				self.velo.y = self.velo.y - self.accl.y
+			end
 		end
 		if inputs.bash then
 			if self:can_bash() then self.state.bashing = true end
@@ -123,7 +122,11 @@ player = {
 			if self.state.jumping then
 				self:set_anim("jump")
 			else
-				self:set_anim("midair")
+				if self:is_falling() then
+					self:set_anim("falling")
+				else
+					self:set_anim("midair")
+				end
 			end
 		else
 			if self.state.moving then
@@ -138,11 +141,14 @@ player = {
   end,
 
 	move = function(self)
+		self.velo.x = math.max(self.velo.x, const.X_MAX_VELO * - 1)
+		self.velo.x = math.min(self.velo.x, const.X_MAX_VELO)
 		self.pos.x = self.pos.x + self.velo.x
 		self.velo.x = self.velo.x * const.X_DECEL
 		self.pos.y = self.pos.y + self.velo.y
 	end,
 
+  -- status functions
 	can_jump = function(self)
 		return self.state.grounded and not self.state.jumping
   end,
@@ -153,6 +159,18 @@ player = {
 
 	is_sliding = function(self)
 		return math.abs(self.velo.x) > 0.05
+	end,
+	
+	is_falling = function(self)
+		return self.velo.y < 0.0
+	end,
+	
+	-- collision checks, update statuses if necessary
+	check_collisions = function(self)
+		self.state.grounded = (
+			iscollidingtile(self.pos.x + self.pos.hbox.x, self.pos.y) or
+			iscollidingtile(self.pos.x + self.pos.hbox.x + self.pos.hbox.w, self.pos.y)	
+		)
   end
 }
 
@@ -270,6 +288,16 @@ function iscolliding(obj1, obj2)
 		obj1.pos.y < (obj2.pos.y + obj2.dim.h) and
 		obj2.pos.y < (obj1.pos.y + obj1.dim.h)
 	)
+end
+
+function iscollidingtile(x, y)
+	local tile_id = mget(x, y)
+	for i=1, #const.PLATFORM_TILES do
+		if const.PLATFORM_TILES[i] == tile_id then
+			return true
+		end
+  end
+	return false
 end
 
 --- collision check w/ independent hitbox
