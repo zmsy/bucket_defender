@@ -1,8 +1,6 @@
 -- globals
 scene = 0
 count = 0
-screenwidth = 240
-screenheight = 136
 
 -- cache inputs for debugging
 inputs_cache = {}
@@ -91,19 +89,14 @@ player = {
 	handle_inputs = function(self, inputs)
 		-- xor logical equivalent
 		if inputs.l or inputs.r and not inputs.l == inputs.r then
-			self:set_anim("stand")
 			self.state.moving = false
 		elseif inputs.l then
 			self.velo.x = math.max(self.velo.x - 1, const.X_MAX_VELO * -1)
 			self.state.moving = true
 			self.dir = 1
-			if not self.state.jumping then
-				self:set_anim("walk")
-		  end
 		elseif inputs.r then
 			self.state.moving = true
 			self.velo.x = math.min(self.velo.x + 1, const.X_MAX_VELO)
-			self:set_anim("walk")
 			self.dir = 0
 		end
 
@@ -234,9 +227,9 @@ function playercontrol()
 
 	-- make sure the player is still onscreen
 	player.pos.x = math.max(player.pos.x, 0)
-	player.pos.x = math.min(player.pos.x, const.screenwidth - player.dim.w)
+	player.pos.x = math.min(player.pos.x, const.SCREENWIDTH - player.dim.w)
 	player.pos.y = math.max(player.pos.y, 0)
-	player.pos.y = math.min(player.pos.y, const.screenheight - player.dim.h)
+	player.pos.y = math.min(player.pos.y, const.SCREENWIDTH - player.dim.h)
 end
 
 -- draw player sprite
@@ -254,13 +247,13 @@ function particlesDraw() end
 function hcenter(s)
 	-- string length times the pixels in a char's width
 	-- cut in half and rounded down
-	return (const.screenwidth / 2) - ((#s * 4) // 2)
+	return (const.SCREENWIDTH / 2) - ((#s * 4) // 2)
 end
 
 function vcenter(s)
 	-- string char's height
 	-- cut in half and rounded down
-	return (screenheight / 2) - (5 // 2)
+	return (const.SCREENHEIGHT / 2) - (5 // 2)
 end
 
 --- collision check
