@@ -14,6 +14,7 @@ const = {
 	Y_MAX_VELO = 1.8,
 	SLIDING_VELO = 0.05,
 	GRAVITY = 0.135,
+	JUMPABLE_AIRTIME = 5,
   PLATFORM_TILES = {64}
 }
 
@@ -24,7 +25,7 @@ player = {
 	hbox = { x = 2, y = 0, w = 4, y = 6 }, -- hitbox
 	dir = 0, -- 0 = right, 1 = left
 	velo = { x = 0.0, y = 0.0 }, -- velocity
-	accl = { x = 0.5, y = 2.5 }, -- acceleration
+	accl = { x = 0.5, y = 3 }, -- acceleration
 	stats = {
 		health = 10,
 		charges = 0,
@@ -33,7 +34,8 @@ player = {
 		grounded = true,
 		jumping = false,
 		moving = false,
-		bashing = false
+		bashing = false,
+		airtime = 0
 	},
 
 	-- animation information
@@ -153,7 +155,8 @@ player = {
 
   -- status functions
 	can_jump = function(self)
-		return self.state.grounded and not self.state.jumping
+		return not self.state.jumping and
+		(self.state.grounded or self.state.airtime < const.JUMPABLE_AIRTIME)
   end,
 
 	can_bash = function(self)
@@ -171,15 +174,16 @@ player = {
 	-- collision checks, update statuses if necessary
 	check_grounded = function(self)
 		if (
-			iscollidingtile(self.pos.x + self.hbox.x, self.pos.y) or
-			iscollidingtile(self.pos.x + self.hbox.x + self.hbox.w, self.pos.y)	
+			iscollidingtile(self.pos.x + self.hbox.x, self.pos.y + 1) or
+			iscollidingtile(self.pos.x + self.hbox.x + self.hbox.w, self.pos.y + 1)	and
+			self.velo.y <= 0
 		) then
 			self.state.grounded = true
-			-- debug = "grounded"
 			self.velo.y = 0
+			self.state.airtime = 0
 		else
 			self.state.grounded = false
-			-- debug = "-"
+			self.state.airtime = self.state.airtime + 1
 		end
   end
 }
@@ -241,8 +245,8 @@ function gamedraw()
 
 	local gametxt = "game screen"
 	map(0, 0, 250, 136, 0, 0)
-	print(string.format("x=%.2f,y=%.2f,vel=%.2f,dbg=%s",
-		player.pos.x, player.pos.y, player.velo.x, debug), 10, 4, 7, true)
+	print(string.format("x=%.2f,y=%.2f,vel=%.2f,dbg=%d",
+		player.pos.x, player.pos.y, player.velo.x, player.state.airtime), 10, 4, 7, true)
 	playerdraw()
 	enemiesDraw()
 	particlesDraw()
@@ -303,7 +307,7 @@ end
 
 -- check to see if colliding with map tiles. div by 8 to get map coords
 function iscollidingtile(x, y)
-	local tile_id = mget(math.floor(x/8) + 1, math.floor(y/8) + 1)
+	local tile_id = mget(math.floor(x/8), math.floor(y/8) + 1)
 	debug = tostring(tile_id)
 	return tile_id == 64
 end
