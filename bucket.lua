@@ -24,7 +24,7 @@ player = {
 	hbox = { x = 2, y = 0, w = 4, y = 6 }, -- hitbox
 	dir = 0, -- 0 = right, 1 = left
 	velo = { x = 0.0, y = 0.0 }, -- velocity
-	accl = { x = 0.5, y = 1.2 }, -- acceleration
+	accl = { x = 0.5, y = 2.5 }, -- acceleration
 	stats = {
 		health = 10,
 		charges = 0,
@@ -48,7 +48,7 @@ player = {
 		["walk"] = { ticks=4, frames={1,2,3,4,5}, loop=true},
 		["jump"] = { ticks=2, frames={17, 18}, loop=false},
 		["midair"] = { ticks=1, frames={16}, loop=true},
-		["falling"] = { tick=1, frames={19}, loop=true},
+		["falling"] = { ticks=1, frames={19}, loop=true},
 		["slide"] = { ticks=1, frames={18}, loop=true},
 		["bash"] = { ticks=3, frames={32,33,34,35,36,37,38,39,40,41}, loop=false}
 	},
@@ -303,7 +303,7 @@ end
 
 -- check to see if colliding with map tiles. div by 8 to get map coords
 function iscollidingtile(x, y)
-	local tile_id = mget(x/8, y/8)
+	local tile_id = mget(math.floor(x/8) + 1, math.floor(y/8) + 1)
 	debug = tostring(tile_id)
 	return tile_id == 64
 end
