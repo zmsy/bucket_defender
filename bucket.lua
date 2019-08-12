@@ -3,14 +3,16 @@ scene = 0
 count = 0
 
 -- cache inputs for debugging
-inputs_cache = {}
+debug = ""
 
 -- constants for tinkering with
 const = {
 	SCREENWIDTH = 240,
 	SCREENHEIGHT = 136,
 	X_MAX_VELO = 1.0,
+	X_DECEL = 0.78,
 	Y_MAX_VELO = 1.8,
+	SLIDING_VELO = 0.05,
 	JUMP_VELO = 1.8,
 	GRAVITY = 0.135
 }
@@ -21,7 +23,7 @@ player = {
 	dim = { w = 8, h = 8 }, -- dimensions
 	hbox = { x = 2, y = 0, w = 4, y = 6 }, -- hitbox
 	dir = 0, -- 0 = right, 1 = left
-	velo = { x = 0.0, x_max = 1.0, y = 0.0, y_max = 1.8 }, -- velocity
+	velo = { x = 0.0, y = 0.0 }, -- velocity
 	accl = { x = 0, y = 0 }, -- acceleration
 	stats = {
 		health = 10,
@@ -31,18 +33,10 @@ player = {
 		grounded = true,
 		jumping = false,
 		moving = false,
-		jump_able = true,
-		bashing = false,
-		bash_able = true
+		bashing = false
 	},
 
-	can_jump = function(self)
-		return self.state.grounded and not self.state.jumping
-  end,
 
-	can_bash = function(self)
-		return not self.state.bashing
-	end,
 
 	-- animation information
 	sprite = 0, -- which sprite the player is currently displaying
@@ -87,42 +81,40 @@ player = {
 
 	-- input handlers
 	handle_inputs = function(self, inputs)
-		-- xor logical equivalent
-		if inputs.l or inputs.r and not inputs.l == inputs.r then
-			self.state.moving = false
-		elseif inputs.l then
-			self.velo.x = math.max(self.velo.x - 1, const.X_MAX_VELO * -1)
+		if inputs.l then
+			debug = "left"
+			self.velo.x = -1.0
 			self.state.moving = true
 			self.dir = 1
 		elseif inputs.r then
+			debug = "right"
 			self.state.moving = true
-			self.velo.x = math.min(self.velo.x + 1, const.X_MAX_VELO)
+			self.velo.x = 1.0
 			self.dir = 0
+		else
+			debug = ""
+			self.state.moving = false
 		end
 
 		if inputs.jump then
-			if self.state.bash_able then
-				self.state.jumping = true
-				self.state.jump_able = false
-		  end
+			if self:can_jump() then self.state.jumping = true end
 		end
 		if inputs.bash then
-			if self.state.bash_able then
-				self.state.bashing = true
-				self.state.bash_able = false
-		  end
+			if self:can_bash() then self.state.bashing = true end
+		end
+	end,
+
+	-- check for state changes based on animation ending
+	check_for_state_changes = function(self)
+		if self.anim_over then
+			self.state.jumping = false
+			self.state.bashing = false
+			self.anim_over = false
 		end
 	end,
 
   -- check the status flags in the player and update accordingly
 	handle_state = function(self)
-		-- check for state changes based on animation ending
-		if self.anim_over then
-			if self.state.jumping then self.state.jumping = false end
-			if self.state.bashing then self.state.bashing = false end
-			self.anim_over = false
-		end
-
 		-- handle player is bashing
 		if self.state.bashing then self:set_anim("bash") end
 
@@ -136,7 +128,7 @@ player = {
 		else
 			if self.state.moving then
 				self:set_anim("walk")
-			elseif self.velo.x > 0.05 then
+			elseif self:is_sliding() then
 				self:set_anim("slide")
 			else
 				self:set_anim("stand")
@@ -147,7 +139,20 @@ player = {
 
 	move = function(self)
 		self.pos.x = self.pos.x + self.velo.x
+		self.velo.x = self.velo.x * const.X_DECEL
 		self.pos.y = self.pos.y + self.velo.y
+	end,
+
+	can_jump = function(self)
+		return self.state.grounded and not self.state.jumping
+  end,
+
+	can_bash = function(self)
+		return not self.state.bashing
+	end,
+
+	is_sliding = function(self)
+		return math.abs(self.velo.x) > 0.05
   end
 }
 
@@ -208,8 +213,8 @@ function gamedraw()
 
 	local gametxt = "game screen"
 	map(0, 0, 250, 136, 0, 0)
-	print(string.format("pos.x=%d,pos.y=%d,l=%s,r=%s",
-		player.pos.x, player.pos.y, tostring(inputs_cache.l), tostring(inputs_cache.r)), 10, 4, 7, true)
+	print(string.format("x=%.2f,y=%.2f,vel=%.2f,dbg=%s",
+		player.pos.x, player.pos.y, player.velo.x, debug), 10, 4, 7, true)
 	playerdraw()
 	enemiesDraw()
 	particlesDraw()
@@ -219,6 +224,7 @@ end
 function playercontrol()
 	local inputs = get_inputs()
 	inputs_cache = inputs
+	player:check_for_state_changes()
 	player:update_anim()
 	player:handle_inputs(inputs)
 	player:handle_state()
