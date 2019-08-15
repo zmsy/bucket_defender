@@ -17,7 +17,7 @@ const = {
 	SLIDING_VELO = 0.05,
 	GRAVITY = 0.135,
 	JUMPABLE_AIRTIME = 5,
-  PLATFORM_TILES = {64}
+	PLATFORM_TILES = {64}
 }
 
 -- player class
@@ -54,12 +54,11 @@ player = {
 		["midair"] = { ticks=1, frames={16}, loop=true},
 		["falling"] = { ticks=1, frames={19}, loop=true},
 		["slide"] = { ticks=1, frames={18}, loop=true},
-		["bash"] = { ticks=3, frames={32,33,34,35,36,37,38,39,40,41}, loop=false}
+		["bash"] = { ticks=2, frames={32,33,34,35,36,37,38,39,40,41}, loop=false}
 	},
 
 	set_anim = function(self, new_anim)
 		if self.anim ~= new_anim then
-			trace("new anim = " .. new_anim .. ", count = " .. tostring(count))
 			self.anim = new_anim
 			self.anim_frame = 1
 		end
@@ -68,7 +67,8 @@ player = {
 	update_anim = function(self)
 		self.anim_ticks = self.anim_ticks - 1
 		if self.anim_ticks <= 0 then
-			if self.anim_frame == #self.anims[self.anim].frames then
+			nth_frame = #self.anims[self.anim].frames
+			if self.anim_frame == nth_frame then
 				self.anim_over = true
 				self.anim_frame = 1
 			else
@@ -102,6 +102,7 @@ player = {
 				self.velo.y = self.velo.y - self.accl.y
 			end
 		end
+
 		if inputs.bash then
 			if self:can_bash() then self.state.bashing = true end
 		end
@@ -114,12 +115,12 @@ player = {
 			if self.state.bashing then
 				self.state.bashing = false
 				self.velo.x = 0
-		  end
+			end
 			self.anim_over = false
 		end
 	end,
 
-  -- check the status flags in the player and update accordingly
+	-- check the status flags in the player and update accordingly
 	handle_state = function(self)
 		-- handle player is bashing
 		if self.state.bashing then
@@ -127,7 +128,7 @@ player = {
 			self.velo.x = self.velo.x + const.X_BASH_VELO * (-1 * self.dir)
 
 		-- handle player is in the air
-  	elseif not self.state.grounded then
+		elseif not self.state.grounded then
 			if self.state.jumping then
 				self:set_anim("jump")
 			else
@@ -144,18 +145,23 @@ player = {
 				self:set_anim("slide")
 			else
 				self:set_anim("stand")
-		  end
+			end
 		end
 
-  end,
+	end,
 
 	move = function(self)
-		if not self.state.bashing then
-			self.velo.x = math.max(self.velo.x, const.X_MAX_VELO * - 1)
-			self.velo.x = math.min(self.velo.x, const.X_MAX_VELO)
+		-- move x
+		xVelo = self.velo.x
+		xVelo = math.max(xVelo, const.X_MAX_VELO * - 1)
+		xVelo = math.min(xVelo, const.X_MAX_VELO)
+		if self.state.bashing then
+			if self.dir == 0 then newDir = 1 else newDir = -1 end
+			xVelo = const.X_BASH_VELO * newDir
 		end
-		self.pos.x = self.pos.x + self.velo.x
+		self.pos.x = self.pos.x + xVelo
 		self.velo.x = self.velo.x * const.X_DECEL
+
 		if not self.state.grounded then
 			self.velo.y = self.velo.y + const.GRAVITY
 		end
@@ -163,11 +169,11 @@ player = {
 		self.pos.y = self.pos.y + self.velo.y
 	end,
 
-  -- status functions
+	-- status functions
 	can_jump = function(self)
 		return not self.state.jumping and
 		(self.state.grounded or self.state.airtime < const.JUMPABLE_AIRTIME)
-  end,
+	end,
 
 	can_bash = function(self)
 		return not self.state.bashing
@@ -190,12 +196,13 @@ player = {
 		) then
 			self.state.grounded = true
 			self.velo.y = 0
+			self.pos.y = math.floor(self.pos.y)
 			self.state.airtime = 0
 		else
 			self.state.grounded = false
 			self.state.airtime = self.state.airtime + 1
 		end
-  end
+	end
 }
 
 -- inputs collector class for button presses
@@ -203,8 +210,8 @@ function get_inputs()
 	local i = { l=false, r=false, jump=false, bash=false }
 	if btn(2) then i.l = true end
 	if btn(3) then i.r = true end
-	if btnp(4) then i.jump = true end
-	if btnp(5) then i.bash = true end
+	if btnp(4, 60, 6) then i.jump = true end
+	if btnp(5, 60, 6) then i.bash = true end
 	return i
 end
 
@@ -256,7 +263,7 @@ function gamedraw()
 	local gametxt = "game screen"
 	map(0, 0, 250, 136, 0, 0)
 	print(string.format("x=%.2f,y=%.2f,vel=%.2f,dbg=%s",
-		player.pos.x, player.pos.y, player.velo.x, tostring(inputs_cache.bash)), 10, 4, 7, true)
+		player.pos.x, player.pos.y, player.velo.x, tostring(player.state.bashing)), 10, 4, 7, true)
 	playerdraw()
 	enemiesDraw()
 	particlesDraw()
