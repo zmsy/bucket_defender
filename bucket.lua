@@ -24,7 +24,7 @@ const = {
 player = {
 	pos = { x = 110, y = 80 }, -- position
 	dim = { w = 8, h = 8 }, -- dimensions
-	hbox = { x = 2, y = 0, w = 4, y = 6 }, -- hitbox
+	hbox = { x = 2, y = 0, w = 4, h = 6 }, -- hitbox
 	dir = 0, -- 0 = right, 1 = left
 	velo = { x = 0.0, y = 0.0 }, -- velocity
 	accl = { x = 0.5, y = 3 }, -- acceleration
@@ -37,6 +37,8 @@ player = {
 		jumping = false,
 		moving = false,
 		bashing = false,
+		side_collided = false,
+		top_collided = false,
 		airtime = 0
 	},
 
@@ -186,9 +188,14 @@ player = {
 	is_falling = function(self)
 		return self.velo.y >= 0.0
 	end,
+
+	check_collisions = function(self)
+		check_ground_collide()
+		check_side_collide()
+  end,
 	
 	-- collision checks, update statuses if necessary
-	check_grounded = function(self)
+	check_ground_collide = function(self)
 		if (
 			iscollidingtile(self.pos.x + self.hbox.x, self.pos.y + 1) or
 			iscollidingtile(self.pos.x + self.hbox.x + self.hbox.w, self.pos.y + 1)	and
@@ -202,7 +209,18 @@ player = {
 			self.state.grounded = false
 			self.state.airtime = self.state.airtime + 1
 		end
-	end
+	end,
+
+	check_side_collide = function(self)
+		if (
+			iscollidingtile(self.pos.x + self.hbox.x, self.pos.y + 1) or
+			iscollidingtile(self.pos.x + self.hbox.x, self.pos.y + self.hbox.h + 1)
+		) then
+			self.state.side_collided = true
+		else
+			self.state.side_collided = false
+		end
+  end
 }
 
 -- inputs collector class for button presses
@@ -273,7 +291,7 @@ end
 function playercontrol()
 	local inputs = get_inputs()
 	inputs_cache = inputs
-	player:check_grounded()
+	player:check_collisions()
 	player:check_for_state_changes()
 	player:update_anim()
 	player:handle_inputs(inputs)
