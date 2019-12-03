@@ -333,10 +333,10 @@ end
 --- collision check
 function iscolliding(obj1, obj2)
 	return (
-		obj1.pos.x < (obj2.pos.x + obj2.dim.w) and
-		obj2.pos.x < (obj1.pos.x + obj1.dim.w) and
-		obj1.pos.y < (obj2.pos.y + obj2.dim.h) and
-		obj2.pos.y < (obj1.pos.y + obj1.dim.h)
+		obj1.pos.x <= (obj2.pos.x + obj2.dim.w) and
+		obj2.pos.x <= (obj1.pos.x + obj1.dim.w) and
+		obj1.pos.y <= (obj2.pos.y + obj2.dim.h) and
+		obj2.pos.y <= (obj1.pos.y + obj1.dim.h)
 	)
 end
 
@@ -350,9 +350,9 @@ end
 --- collision check w/ independent hitbox
 function iscollidinghbox(obj1, obj2)
 	return (
-		obj1.pos.x + obj1.hbox.x < (obj2.pos.x + obj2.hbox.x + obj2.hbox.w) and
-		obj2.pos.x + obj2.hbox.x < (obj1.pos.x + obj1.hbox.x + obj1.hbox.w) and
-		obj1.pos.y + obj1.hbox.y < (obj2.pos.y + obj2.hbox.y + obj2.hbox.h) and
-		obj2.pos.y + obj2.hbox.y < (obj1.pos.y + obj1.hbox.y + obj1.dim.h)
+		obj1.pos.x + obj1.hbox.x <= (obj2.pos.x + obj2.hbox.x + obj2.hbox.w) and
+		obj2.pos.x + obj2.hbox.x <= (obj1.pos.x + obj1.hbox.x + obj1.hbox.w) and
+		obj1.pos.y + obj1.hbox.y <= (obj2.pos.y + obj2.hbox.y + obj2.hbox.h) and
+		obj2.pos.y + obj2.hbox.y <= (obj1.pos.y + obj1.hbox.y + obj1.dim.h)
 	)
 end
